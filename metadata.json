@@ -1,0 +1,5 @@
+{
+  "name": "EmailTrackMaster",
+  "description": "A production-ready Outlook Add-in for tracking email response times, VIP status, and attachment guards.",
+  "requestFramePermissions": []
+}

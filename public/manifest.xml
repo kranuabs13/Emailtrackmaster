@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" 
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" 
+           xsi:type="MailApp">
+  <Id>5e3a5b2c-1234-4567-890a-b1c2d3e4f5g6</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>EmailTrackMaster Corp</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="EmailTrackMaster" />
+  <Description DefaultValue="Track email response times and VIP SLAs with ease." />
+  <IconUrl DefaultValue="https://picsum.photos/64/64" />
+  <HighResolutionIconUrl DefaultValue="https://picsum.photos/128/128" />
+  <SupportUrl DefaultValue="https://example.com/support" />
+  
+  <AppDomains>
+    <AppDomain>https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.8" />
+    </Sets>
+  </Requirements>
+
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app/taskpane.html" />
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+  </Rule>
+  
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.8">
+        <bt:Set Name="Mailbox" />
+      </bt:Sets>
+    </Requirements>
+    
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <!-- Function file for background events -->
+          <FunctionFile resid="Commands.Url" />
+
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="msgReadGroup">
+                <Label resid="groupLabel" />
+                <Control xsi:type="Button" id="msgReadOpenPaneButton">
+                  <Label resid="paneButtonLabel" />
+                  <Supertip>
+                    <Title resid="paneButtonLabel" />
+                    <Description resid="paneButtonDesc" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+
+          <!-- Event-based activation for OnSend -->
+          <ExtensionPoint xsi:type="Events">
+            <Event Type="ItemSend" FunctionName="onSendHandler" />
+          </ExtensionPoint>
+
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://picsum.photos/16/16" />
+        <bt:Image id="icon32" DefaultValue="https://picsum.photos/32/32" />
+        <bt:Image id="icon80" DefaultValue="https://picsum.photos/80/80" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Commands.Url" DefaultValue="https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app/commands.js" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="EmailTrack" />
+        <bt:String id="paneButtonLabel" DefaultValue="Open Dashboard" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="paneButtonDesc" DefaultValue="Opens the EmailTrackMaster dashboard to view response stats." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
