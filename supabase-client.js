@@ -3,8 +3,8 @@
  * Production-ready modular implementation
  */
 
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://glastmgtyigzbxxgcdbo.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_jmM4i9pwWtc8J8WvCiCp3Q_wfM7ncvz";
 
 let supabase;
 
@@ -144,5 +144,21 @@ const db = {
         
         if (error && error.code !== 'PGRST116') return null;
         return data;
+    },
+
+    /**
+     * Future Scalability: Team & Manager Operations
+     * These functions are placeholders for the upcoming escalation and team dashboard features.
+     */
+    async getTeamStats(teamId) {
+        // TODO: Implement team-wide metrics for manager dashboard
+        console.log("Future Feature: Fetching team stats for", teamId);
+        return null;
+    },
+
+    async triggerEscalation(emailId, managerEmail) {
+        // TODO: Implement escalation logic when SLA is severely breached
+        console.log("Future Feature: Escalating email", emailId, "to", managerEmail);
+        return null;
     }
 };

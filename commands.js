@@ -3,8 +3,8 @@
  * Synchronous ItemSend implementation
  */
 
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://glastmgtyigzbxxgcdbo.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_jmM4i9pwWtc8J8WvCiCp3Q_wfM7ncvz";
 
 /**
  * Background Supabase Update
