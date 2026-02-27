@@ -1,87 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EmailTrackMaster Dashboard</title>
-
-    <!-- Office.js -->
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-    
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Custom Supabase Client -->
-    <script src="supabase-client.js"></script>
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme">
-    <div class="container">
-        <header class="header">
-            <div class="logo-area">
-                <div class="logo-icon">ETM</div>
+    <div class="app-container">
+        <header class="dashboard-header">
+            <div class="brand">
+                <span class="logo">ETM</span>
                 <h1>EmailTrackMaster</h1>
             </div>
-            <div id="user-email" class="user-badge">Loading...</div>
+            <div id="user-badge" class="user-badge">...</div>
         </header>
 
-        <main class="dashboard">
-            <section class="stats-grid">
-                <div class="card">
-                    <div class="card-value" id="stat-avg-time">0.0</div>
-                    <div class="card-label">Avg Response (Min)</div>
+        <main class="dashboard-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-label">Total Tracked</span>
                 </div>
-                <div class="card">
-                    <div class="card-value" id="stat-total">0</div>
-                    <div class="card-label">Total Tracked</div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-pending">0</span>
+                    <span class="stat-label">Pending</span>
                 </div>
-                <div class="card warning">
-                    <div class="card-value" id="stat-pending">0</div>
-                    <div class="card-label">Pending</div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-replied">0</span>
+                    <span class="stat-label">Replied</span>
                 </div>
-                <div class="card success">
-                    <div class="card-value" id="stat-replied">0</div>
-                    <div class="card-label">Replied</div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-avg-time">0.0</span>
+                    <span class="stat-label">Avg Response (Min)</span>
                 </div>
-                <div class="card danger" id="card-over-sla">
-                    <div class="card-value" id="stat-over-sla">0</div>
-                    <div class="card-label">Over SLA</div>
+                <div class="stat-card vip">
+                    <span class="stat-value" id="stat-vip-pending">0</span>
+                    <span class="stat-label">VIP Pending</span>
                 </div>
-                <div class="card vip" id="card-vip-pending">
-                    <div class="card-value" id="stat-vip-pending">0</div>
-                    <div class="card-label">VIP Pending</div>
+                <div class="stat-card danger" id="card-over-sla">
+                    <span class="stat-value" id="stat-over-sla">0</span>
+                    <span class="stat-label">Over SLA</span>
                 </div>
-            </section>
+            </div>
 
-            <section id="active-tracking" class="active-tracking-card" style="display: none;">
-                <div class="tracking-header">
-                    <span class="tracking-title">Active Email Tracking</span>
-                    <span id="vip-badge" class="badge vip-badge" style="display: none;">VIP</span>
+            <section id="active-item-section" class="active-item-card" style="display: none;">
+                <div class="card-header">
+                    <h3>Active Tracking</h3>
+                    <span id="vip-indicator" class="vip-tag" style="display: none;">VIP</span>
                 </div>
-                <div class="timer-display">
-                    <div id="live-timer" class="timer-clock">00:00:00</div>
+                <div class="timer-container">
+                    <div id="live-timer" class="timer-display">00:00:00</div>
                     <div id="sla-status" class="sla-status">Within SLA</div>
                 </div>
-                <div class="email-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Sender:</span>
-                        <span id="current-sender" class="detail-value">...</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Received:</span>
-                        <span id="current-received" class="detail-value">...</span>
-                    </div>
+                <div class="item-meta">
+                    <p><strong>From:</strong> <span id="item-sender">...</span></p>
+                    <p><strong>Received:</strong> <span id="item-received">...</span></p>
                 </div>
             </section>
         </main>
 
-        <footer class="footer">
-            <p>EmailTrackMaster &copy; 2024</p>
+        <footer class="dashboard-footer">
+            <p>Production Ready SLA Tracking</p>
         </footer>
     </div>
 
-    <script src="taskpane.js"></script>
+    <script type="module" src="taskpane.js"></script>
 </body>
 </html>

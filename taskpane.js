@@ -1,52 +1,25 @@
-/**
- * EmailTrackMaster - Taskpane Logic
- */
+import { supabase } from './supabase-client.js';
 
-let timerInterval;
 let currentUserEmail;
+let timerInterval;
+let currentRecord;
 
 Office.onReady((info) => {
     if (info.host === Office.Host.Outlook) {
-        initSupabase();
         currentUserEmail = Office.context.mailbox.userProfile.emailAddress;
-        document.getElementById('user-email').innerText = currentUserEmail;
+        document.getElementById('user-badge').innerText = currentUserEmail;
 
-        // Initialize dashboard
-        refreshDashboard();
-
-        // Listen for item changes
+        // Register ItemChanged event
         Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, handleItemChanged);
 
-        // Initial check
+        // Initial load
+        refreshDashboard();
         handleItemChanged();
 
-        // Auto-refresh stats
-        setInterval(refreshDashboard, 30000);
+        // Periodic refresh
+        setInterval(refreshDashboard, 15000);
     }
 });
-
-/**
- * Update Dashboard Metrics
- */
-async function refreshDashboard() {
-    const stats = await db.getStats(currentUserEmail);
-    if (!stats) return;
-
-    document.getElementById('stat-avg-time').innerText = stats.avgResponseTime;
-    document.getElementById('stat-total').innerText = stats.total;
-    document.getElementById('stat-pending').innerText = stats.pending;
-    document.getElementById('stat-replied').innerText = stats.replied;
-    document.getElementById('stat-over-sla').innerText = stats.overSla;
-    document.getElementById('stat-vip-pending').innerText = stats.vipPending;
-
-    // Visual indicators
-    const overSlaCard = document.getElementById('card-over-sla');
-    if (stats.overSla > 0) {
-        overSlaCard.classList.add('danger');
-    } else {
-        overSlaCard.classList.remove('danger');
-    }
-}
 
 /**
  * Handle Email Selection Change
@@ -55,97 +28,182 @@ async function handleItemChanged() {
     const item = Office.context.mailbox.item;
     
     // Reset UI
-    stopLiveTimer();
-    document.getElementById('active-tracking').style.display = 'none';
-    document.getElementById('vip-badge').style.display = 'none';
+    stopTimer();
+    document.getElementById('active-item-section').style.display = 'none';
+    document.getElementById('vip-indicator').style.display = 'none';
 
     if (!item || item.itemType !== Office.MailboxEnums.ItemType.Message) {
         return;
     }
 
-    const conversationId = item.conversationId;
-    const sender = item.from ? item.from.emailAddress : null;
+    try {
+        const conversationId = item.conversationId;
+        const sender = item.from ? item.from.emailAddress : null;
 
-    if (!sender) return;
+        if (!sender || !conversationId) return;
 
-    // 1. Check if email is already tracked
-    let emailRecord = await db.getEmailByConversation(conversationId);
+        // Check if already exists
+        let { data: record, error } = await supabase
+            .from('emails')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .maybeSingle();
 
-    if (!emailRecord) {
-        // New email - check VIP status and log
-        const vipRule = await db.getVipRule(sender);
-        const isVip = !!vipRule;
-        const slaMinutes = isVip ? vipRule.sla_minutes : 120; // Default 2 hours
+        if (error) throw error;
 
-        emailRecord = {
-            user_email: currentUserEmail,
-            sender_email: sender,
-            conversation_id: conversationId,
-            received_at: item.dateTimeCreated.toISOString(),
-            is_vip: isVip,
-            sla_minutes: slaMinutes,
-            status: 'pending'
-        };
+        if (!record) {
+            // Check VIP Rules
+            const { data: vipRule } = await supabase
+                .from('vip_rules')
+                .select('sla_minutes')
+                .eq('sender_email', sender)
+                .maybeSingle();
 
-        emailRecord = await db.logEmail(emailRecord);
-        refreshDashboard();
-    }
+            const isVip = !!vipRule;
+            const slaMinutes = isVip ? vipRule.sla_minutes : 120; // Default 2 hours
 
-    // 2. If pending, show live timer
-    if (emailRecord && emailRecord.status === 'pending') {
-        showActiveTracking(emailRecord);
+            const newRecord = {
+                user_email: currentUserEmail,
+                sender_email: sender,
+                conversation_id: conversationId,
+                received_at: item.dateTimeCreated.toISOString(),
+                is_vip: isVip,
+                sla_minutes: slaMinutes,
+                status: 'pending'
+            };
+
+            const { data: inserted, error: insertError } = await supabase
+                .from('emails')
+                .insert([newRecord])
+                .select()
+                .single();
+
+            if (insertError) {
+                // Handle race condition if another client inserted it
+                if (insertError.code === '23505') {
+                    const { data: retry } = await supabase
+                        .from('emails')
+                        .select('*')
+                        .eq('conversation_id', conversationId)
+                        .single();
+                    record = retry;
+                } else {
+                    throw insertError;
+                }
+            } else {
+                record = inserted;
+            }
+            refreshDashboard();
+        }
+
+        if (record && record.status === 'pending') {
+            currentRecord = record;
+            showActiveTracking(record);
+        }
+    } catch (error) {
+        console.error("Error in handleItemChanged:", error);
     }
 }
 
 /**
- * Live SLA Timer Logic
+ * Dashboard Refresh
+ */
+async function refreshDashboard() {
+    try {
+        const { data, error } = await supabase
+            .from('emails')
+            .select('*')
+            .eq('user_email', currentUserEmail);
+
+        if (error) throw error;
+
+        const stats = {
+            total: data.length,
+            pending: data.filter(e => e.status === 'pending').length,
+            replied: data.filter(e => e.status === 'replied').length,
+            vipPending: data.filter(e => e.status === 'pending' && e.is_vip).length,
+            avgResponseTime: 0,
+            overSla: 0
+        };
+
+        const replied = data.filter(e => e.status === 'replied' && e.response_time_seconds);
+        if (replied.length > 0) {
+            const sum = replied.reduce((acc, curr) => acc + curr.response_time_seconds, 0);
+            stats.avgResponseTime = (sum / replied.length / 60).toFixed(1);
+        }
+
+        stats.overSla = data.filter(e => {
+            if (e.status !== 'pending') return false;
+            const elapsed = (new Date() - new Date(e.received_at)) / 1000 / 60;
+            return elapsed > e.sla_minutes;
+        }).length;
+
+        updateUI(stats);
+    } catch (error) {
+        console.error("Error refreshing dashboard:", error);
+    }
+}
+
+function updateUI(stats) {
+    document.getElementById('stat-total').innerText = stats.total;
+    document.getElementById('stat-pending').innerText = stats.pending;
+    document.getElementById('stat-replied').innerText = stats.replied;
+    document.getElementById('stat-avg-time').innerText = stats.avgResponseTime;
+    document.getElementById('stat-vip-pending').innerText = stats.vipPending;
+    document.getElementById('stat-over-sla').innerText = stats.overSla;
+
+    const overSlaCard = document.getElementById('card-over-sla');
+    if (stats.overSla > 0) {
+        overSlaCard.classList.add('active-danger');
+    } else {
+        overSlaCard.classList.remove('active-danger');
+    }
+}
+
+/**
+ * Live Timer
  */
 function showActiveTracking(record) {
-    const trackingCard = document.getElementById('active-tracking');
-    const timerClock = document.getElementById('live-timer');
+    const section = document.getElementById('active-item-section');
+    const timer = document.getElementById('live-timer');
     const slaStatus = document.getElementById('sla-status');
-    const vipBadge = document.getElementById('vip-badge');
-    
-    trackingCard.style.display = 'block';
-    document.getElementById('current-sender').innerText = record.sender_email;
-    document.getElementById('current-received').innerText = new Date(record.received_at).toLocaleString();
+    const vipTag = document.getElementById('vip-indicator');
 
-    if (record.is_vip) {
-        vipBadge.style.display = 'inline-block';
-    }
+    section.style.display = 'block';
+    document.getElementById('item-sender').innerText = record.sender_email;
+    document.getElementById('item-received').innerText = new Date(record.received_at).toLocaleString();
+
+    if (record.is_vip) vipTag.style.display = 'inline-block';
 
     const receivedAt = new Date(record.received_at);
     const slaMs = record.sla_minutes * 60 * 1000;
 
-    function updateTimer() {
+    function tick() {
         const now = new Date();
-        const elapsedMs = now - receivedAt;
+        const diff = now - receivedAt;
         
-        // Format: HH:MM:SS
-        const totalSeconds = Math.floor(elapsedMs / 1000);
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-        
-        timerClock.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
 
-        // SLA Check
-        if (elapsedMs > slaMs) {
+        timer.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+        if (diff > slaMs) {
             slaStatus.innerText = "OVER SLA LIMIT";
-            slaStatus.classList.add('over');
-            timerClock.style.color = 'var(--danger-color)';
+            slaStatus.style.color = "#ff4444";
+            timer.style.color = "#ff4444";
         } else {
             slaStatus.innerText = "Within SLA";
-            slaStatus.classList.remove('over');
-            timerClock.style.color = 'var(--text-primary)';
+            slaStatus.style.color = "#00ff88";
+            timer.style.color = "#ffffff";
         }
     }
 
-    updateTimer();
-    timerInterval = setInterval(updateTimer, 1000);
+    tick();
+    timerInterval = setInterval(tick, 1000);
 }
 
-function stopLiveTimer() {
+function stopTimer() {
     if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;

@@ -1,13 +1,13 @@
 {
   "name": "email-track-master-outlook",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "EmailTrackMaster Outlook Add-in",
   "type": "module",
   "scripts": {
     "dev": "npx serve -l 3000",
     "start": "npx serve -l 3000",
-    "build": "echo 'No build step needed for static files'",
-    "lint": "echo 'No lint step configured'"
+    "build": "echo 'No build step needed'",
+    "lint": "echo 'No lint step needed'"
   },
   "dependencies": {
     "serve": "^14.2.4"
