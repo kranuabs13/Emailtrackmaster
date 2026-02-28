@@ -4,24 +4,33 @@
            xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
            xsi:type="MailApp">
 
+  <!-- Stable GUID for your add-in -->
   <Id>7d2b3c4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e</Id>
+
+  <!-- Bump this when you change manifest behavior -->
   <Version>1.1.0.0</Version>
+
   <ProviderName>EmailTrackMaster</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="EmailTrackMaster"/>
-  <Description DefaultValue="Production-ready email performance and SLA tracking."/>
-  <IconUrl DefaultValue="https://picsum.photos/64/64"/>
-  <HighResolutionIconUrl DefaultValue="https://picsum.photos/128/128"/>
+  <Description DefaultValue="Email performance and SLA tracking."/>
   <SupportUrl DefaultValue="https://example.com/support"/>
 
+  <!-- These icons are just placeholders. Replace later with your own hosted assets. -->
+  <IconUrl DefaultValue="https://picsum.photos/64/64"/>
+  <HighResolutionIconUrl DefaultValue="https://picsum.photos/128/128"/>
+
+  <!-- Hosts allowed for navigation / taskpane content -->
   <AppDomains>
-    <AppDomain>https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app</AppDomain>
+    <AppDomain>https://kranuabs13.github.io</AppDomain>
+    <AppDomain>https://glastmgtyigzbxxgcdbo.supabase.co</AppDomain>
   </AppDomains>
 
   <Hosts>
     <Host Name="Mailbox"/>
   </Hosts>
 
+  <!-- Keep 1.8 since you’re using modern APIs and OnMessageSend pattern -->
   <Requirements>
     <Sets>
       <Set Name="Mailbox" MinVersion="1.8"/>
@@ -30,6 +39,7 @@
 
   <Permissions>ReadWriteMailbox</Permissions>
 
+  <!-- Show in both Read and Compose -->
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
@@ -37,7 +47,7 @@
 
   <DisableEntityHighlighting>false</DisableEntityHighlighting>
 
-  <!-- ONLY ONE VersionOverrides block -->
+  <!-- VersionOverrides: commands + taskpane + on-send -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1"
                     xsi:type="VersionOverridesV1_1">
 
@@ -51,24 +61,24 @@
       <Host xsi:type="MailHost">
         <DesktopFormFactor>
 
-          <!-- Required for OnMessageSend -->
+          <!-- This must point to commands.html which loads office.js + commands.js -->
           <FunctionFile resid="Commands.Url"/>
 
-          <!-- READ SURFACE -->
+          <!-- ========== READ SURFACE BUTTON ========== -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <OfficeTab id="TabDefault">
-              <Group id="msgReadGroup">
-                <Label resid="groupLabel"/>
-                <Control xsi:type="Button" id="openDashboardButton">
-                  <Label resid="paneButtonLabel"/>
+              <Group id="ETM.Read.Group">
+                <Label resid="Group.Label"/>
+                <Control xsi:type="Button" id="ETM.Read.OpenDashboard">
+                  <Label resid="Button.Label"/>
                   <Supertip>
-                    <Title resid="paneButtonLabel"/>
-                    <Description resid="paneButtonDesc"/>
+                    <Title resid="Button.Label"/>
+                    <Description resid="Button.Desc"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="icon16"/>
-                    <bt:Image size="32" resid="icon32"/>
-                    <bt:Image size="80" resid="icon80"/>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
@@ -78,21 +88,21 @@
             </OfficeTab>
           </ExtensionPoint>
 
-          <!-- COMPOSE SURFACE (Required for Send Event) -->
+          <!-- ========== COMPOSE SURFACE BUTTON ========== -->
           <ExtensionPoint xsi:type="MessageComposeCommandSurface">
             <OfficeTab id="TabDefault">
-              <Group id="msgComposeGroup">
-                <Label resid="groupLabel"/>
-                <Control xsi:type="Button" id="openDashboardComposeButton">
-                  <Label resid="paneButtonLabel"/>
+              <Group id="ETM.Compose.Group">
+                <Label resid="Group.Label"/>
+                <Control xsi:type="Button" id="ETM.Compose.OpenDashboard">
+                  <Label resid="Button.Label"/>
                   <Supertip>
-                    <Title resid="paneButtonLabel"/>
-                    <Description resid="paneButtonDesc"/>
+                    <Title resid="Button.Label"/>
+                    <Description resid="Button.Desc"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="icon16"/>
-                    <bt:Image size="32" resid="icon32"/>
-                    <bt:Image size="80" resid="icon80"/>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
@@ -102,7 +112,7 @@
             </OfficeTab>
           </ExtensionPoint>
 
-          <!-- SEND EVENT -->
+          <!-- ========== ON-SEND BLOCKING EVENT ========== -->
           <ExtensionPoint xsi:type="LaunchEvent">
             <LaunchEvents>
               <LaunchEvent Type="OnMessageSend"
@@ -118,26 +128,25 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="icon16" DefaultValue="https://picsum.photos/16/16"/>
-        <bt:Image id="icon32" DefaultValue="https://picsum.photos/32/32"/>
-        <bt:Image id="icon80" DefaultValue="https://picsum.photos/80/80"/>
+        <bt:Image id="Icon.16" DefaultValue="https://picsum.photos/16/16"/>
+        <bt:Image id="Icon.32" DefaultValue="https://picsum.photos/32/32"/>
+        <bt:Image id="Icon.80" DefaultValue="https://picsum.photos/80/80"/>
       </bt:Images>
 
       <bt:Urls>
         <bt:Url id="Commands.Url"
-                DefaultValue="https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app/commands.html"/>
+                DefaultValue="https://kranuabs13.github.io/Emailtrackmaster/commands.html"/>
         <bt:Url id="Taskpane.Url"
-                DefaultValue="https://ais-dev-bsntgirxvoe4wgsfbfr2f7-31510190271.europe-west1.run.app/taskpane.html"/>
+                DefaultValue="https://kranuabs13.github.io/Emailtrackmaster/taskpane.html"/>
       </bt:Urls>
 
       <bt:ShortStrings>
-        <bt:String id="groupLabel" DefaultValue="EmailTrack"/>
-        <bt:String id="paneButtonLabel" DefaultValue="Open Dashboard"/>
+        <bt:String id="Group.Label" DefaultValue="EmailTrack"/>
+        <bt:String id="Button.Label" DefaultValue="Open Dashboard"/>
       </bt:ShortStrings>
 
       <bt:LongStrings>
-        <bt:String id="paneButtonDesc"
-                   DefaultValue="Opens the EmailTrackMaster dashboard."/>
+        <bt:String id="Button.Desc" DefaultValue="Opens the EmailTrackMaster dashboard."/>
       </bt:LongStrings>
     </Resources>
 
