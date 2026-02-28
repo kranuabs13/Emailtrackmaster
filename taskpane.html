@@ -1,72 +1,135 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EmailTrackMaster Dashboard</title>
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="dark-theme">
-    <div class="app-container">
-        <header class="dashboard-header">
-            <div class="brand">
-                <span class="logo">ETM</span>
-                <h1>EmailTrackMaster</h1>
-            </div>
-            <div id="user-badge" class="user-badge">...</div>
-        </header>
+import { supabase } from './supabase-client.js'
 
-        <main class="dashboard-content">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-value" id="stat-total">0</span>
-                    <span class="stat-label">Total Tracked</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="stat-pending">0</span>
-                    <span class="stat-label">Pending</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="stat-replied">0</span>
-                    <span class="stat-label">Replied</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value" id="stat-avg-time">0.0</span>
-                    <span class="stat-label">Avg Response (Min)</span>
-                </div>
-                <div class="stat-card vip">
-                    <span class="stat-value" id="stat-vip-pending">0</span>
-                    <span class="stat-label">VIP Pending</span>
-                </div>
-                <div class="stat-card danger" id="card-over-sla">
-                    <span class="stat-value" id="stat-over-sla">0</span>
-                    <span class="stat-label">Over SLA</span>
-                </div>
-            </div>
+let currentItem = null
+let liveTimerInterval = null
 
-            <section id="active-item-section" class="active-item-card" style="display: none;">
-                <div class="card-header">
-                    <h3>Active Tracking</h3>
-                    <span id="vip-indicator" class="vip-tag" style="display: none;">VIP</span>
-                </div>
-                <div class="timer-container">
-                    <div id="live-timer" class="timer-display">00:00:00</div>
-                    <div id="sla-status" class="sla-status">Within SLA</div>
-                </div>
-                <div class="item-meta">
-                    <p><strong>From:</strong> <span id="item-sender">...</span></p>
-                    <p><strong>Received:</strong> <span id="item-received">...</span></p>
-                </div>
-            </section>
-        </main>
+Office.onReady(() => {
+    console.log("EmailTrackMaster Ready")
 
-        <footer class="dashboard-footer">
-            <p>Production Ready SLA Tracking</p>
-        </footer>
-    </div>
+    if (Office.context.mailbox) {
+        Office.context.mailbox.addHandlerAsync(
+            Office.EventType.ItemChanged,
+            handleItemChanged
+        )
 
-    <script type="module" src="taskpane.js"></script>
-</body>
-</html>
+        handleItemChanged()
+    }
+})
+
+/* ===========================
+   ITEM CHANGE HANDLER
+=========================== */
+async function handleItemChanged() {
+    const item = Office.context.mailbox.item
+    if (!item || item.itemType !== Office.MailboxEnums.ItemType.Message) return
+
+    currentItem = item
+
+    const conversationId = item.conversationId
+    const sender = item.from?.emailAddress
+    const subject = item.subject
+    const receivedAt = item.dateTimeCreated
+
+    if (!conversationId || !receivedAt) return
+
+    await upsertEmail(conversationId, sender, subject, receivedAt)
+    await loadDashboard()
+    showActiveTracking(conversationId, sender, receivedAt)
+}
+
+/* ===========================
+   UPSERT EMAIL
+=========================== */
+async function upsertEmail(conversationId, sender, subject, receivedAt) {
+    const { error } = await supabase
+        .from('emails')
+        .upsert(
+            {
+                conversation_id: conversationId,
+                sender_email: sender,
+                subject: subject,
+                received_at: receivedAt,
+                status: 'pending'
+            },
+            { onConflict: 'conversation_id' }
+        )
+
+    if (error) console.error("Upsert error:", error)
+}
+
+/* ===========================
+   LOAD DASHBOARD STATS
+=========================== */
+async function loadDashboard() {
+    const { data, error } = await supabase
+        .from('emails')
+        .select('*')
+
+    if (error) {
+        console.error("Dashboard load error:", error)
+        return
+    }
+
+    const total = data.length
+    const pending = data.filter(e => e.status === 'pending').length
+    const replied = data.filter(e => e.status === 'replied').length
+    const vipPending = data.filter(e => e.status === 'pending' && e.is_vip).length
+    const overSla = data.filter(e => e.status === 'pending' && isOverSla(e)).length
+
+    const repliedItems = data.filter(e => e.response_time_seconds)
+    const avgSeconds = repliedItems.length
+        ? repliedItems.reduce((a, b) => a + b.response_time_seconds, 0) / repliedItems.length
+        : 0
+
+    const avgMinutes = (avgSeconds / 60).toFixed(1)
+
+    document.getElementById('stat-total').innerText = total
+    document.getElementById('stat-pending').innerText = pending
+    document.getElementById('stat-replied').innerText = replied
+    document.getElementById('stat-vip-pending').innerText = vipPending
+    document.getElementById('stat-over-sla').innerText = overSla
+    document.getElementById('stat-avg-time').innerText = avgMinutes
+}
+
+/* ===========================
+   SLA CHECK
+=========================== */
+function isOverSla(email) {
+    const received = new Date(email.received_at).getTime()
+    const deadline = received + (email.sla_minutes || 60) * 60000
+    return Date.now() > deadline
+}
+
+/* ===========================
+   ACTIVE EMAIL TRACKING
+=========================== */
+function showActiveTracking(conversationId, sender, receivedAt) {
+    const section = document.getElementById('active-item-section')
+    section.style.display = 'block'
+
+    document.getElementById('item-sender').innerText = sender || 'Unknown'
+    document.getElementById('item-received').innerText =
+        new Date(receivedAt).toLocaleString()
+
+    startLiveTimer(receivedAt)
+}
+
+function startLiveTimer(receivedAt) {
+    if (liveTimerInterval) clearInterval(liveTimerInterval)
+
+    const startTime = new Date(receivedAt).getTime()
+
+    liveTimerInterval = setInterval(() => {
+        const diff = Date.now() - startTime
+        const hours = Math.floor(diff / 3600000)
+        const minutes = Math.floor((diff % 3600000) / 60000)
+        const seconds = Math.floor((diff % 60000) / 1000)
+
+        document.getElementById('live-timer').innerText =
+            `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    }, 1000)
+}
+
+function pad(num) {
+    return num.toString().padStart(2, '0')
+}
