@@ -4,23 +4,45 @@
            xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
            xsi:type="MailApp">
 
-  <!-- Stable GUID for your add-in -->
   <Id>7d2b3c4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e</Id>
-
-  <!-- Bump this when you change manifest behavior -->
-  <Version>1.1.0.0</Version>
-
+  <Version>1.1.0.1</Version>
   <ProviderName>EmailTrackMaster</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="EmailTrackMaster"/>
   <Description DefaultValue="Email performance and SLA tracking."/>
-  <SupportUrl DefaultValue="https://example.com/support"/>
 
-  <!-- These icons are just placeholders. Replace later with your own hosted assets. -->
+  <!-- REQUIRED for MailApp schema -->
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://kranuabs13.github.io/Emailtrackmaster/taskpane.html"/>
+        <RequestedHeight>600</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://kranuabs13.github.io/Emailtrackmaster/taskpane.html"/>
+        <RequestedHeight>600</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <!-- Optional but commonly included -->
+  <Permissions>ReadWriteMailbox</Permissions>
+
+  <!-- Activation rule -->
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+  </Rule>
+
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+  <!-- These can be present, but MUST be placed after required MailApp elements above -->
   <IconUrl DefaultValue="https://picsum.photos/64/64"/>
   <HighResolutionIconUrl DefaultValue="https://picsum.photos/128/128"/>
+  <SupportUrl DefaultValue="https://example.com/support"/>
 
-  <!-- Hosts allowed for navigation / taskpane content -->
   <AppDomains>
     <AppDomain>https://kranuabs13.github.io</AppDomain>
     <AppDomain>https://glastmgtyigzbxxgcdbo.supabase.co</AppDomain>
@@ -30,24 +52,13 @@
     <Host Name="Mailbox"/>
   </Hosts>
 
-  <!-- Keep 1.8 since you’re using modern APIs and OnMessageSend pattern -->
   <Requirements>
     <Sets>
       <Set Name="Mailbox" MinVersion="1.8"/>
     </Sets>
   </Requirements>
 
-  <Permissions>ReadWriteMailbox</Permissions>
-
-  <!-- Show in both Read and Compose -->
-  <Rule xsi:type="RuleCollection" Mode="Or">
-    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
-    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
-  </Rule>
-
-  <DisableEntityHighlighting>false</DisableEntityHighlighting>
-
-  <!-- VersionOverrides: commands + taskpane + on-send -->
+  <!-- Commands + OnMessageSend -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1"
                     xsi:type="VersionOverridesV1_1">
 
@@ -61,10 +72,10 @@
       <Host xsi:type="MailHost">
         <DesktopFormFactor>
 
-          <!-- This must point to commands.html which loads office.js + commands.js -->
+          <!-- Commands runtime file -->
           <FunctionFile resid="Commands.Url"/>
 
-          <!-- ========== READ SURFACE BUTTON ========== -->
+          <!-- READ surface button -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="ETM.Read.Group">
@@ -88,7 +99,7 @@
             </OfficeTab>
           </ExtensionPoint>
 
-          <!-- ========== COMPOSE SURFACE BUTTON ========== -->
+          <!-- COMPOSE surface button -->
           <ExtensionPoint xsi:type="MessageComposeCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="ETM.Compose.Group">
@@ -112,7 +123,7 @@
             </OfficeTab>
           </ExtensionPoint>
 
-          <!-- ========== ON-SEND BLOCKING EVENT ========== -->
+          <!-- ON-SEND blocking -->
           <ExtensionPoint xsi:type="LaunchEvent">
             <LaunchEvents>
               <LaunchEvent Type="OnMessageSend"
